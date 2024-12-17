@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>누리카세</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: #f3f4f6;
+            margin: 0;
+        }
+        .chat-container {
+            width: 90%;
+            max-width: 500px;
+            background-color: #ffffff;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            padding: 20px;
+        }
+        h2 {
+            text-align: center;
+            color: #953735;
+        }
+        .chat-box {
+            height: 400px;
+            overflow-y: auto;
+            padding: 10px;
+            background-color: #f9f9f9;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            margin-bottom: 10px;
+        }
+        .chat-box div {
+            margin: 10px 0;
+            padding: 8px 12px;
+            border-radius: 5px;
+        }
+        .user {
+            background-color: #DE6967;
+            align-self: flex-start;
+        }
+        .bot {
+            background-color: #F3ECE4;
+            align-self: flex-end;
+        }
+        button {
+            display: block;
+            width: 100%;
+            padding: 10px;
+            font-size: 16px;
+            background-color: #953735;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #953735;
+        }
+    </style>
+</head>
+<body>
+    <div class="chat-container">
+        <h2>누리카세</h2>
+        <div class="chat-box" id="chat-box"></div>
+        <button onclick="startRecognition()">말하기</button>
+    </div>
+
+    <script>
+        // 첫 시작 메시지 표시 및 음성 출력
+        const startMessage = "{{ start_message }}";
+        if (startMessage) {
+            appendMessage('bot', startMessage);
+            
+            // 1초 지연 후 음성 출력
+            setTimeout(() => {
+                fetch('/speak', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ text: startMessage })
+                });
+            }, 1000); // 1초 지연
+        }
+
+        function appendMessage(sender, message) {
+            const chatBox = document.getElementById('chat-box');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = sender;
+            messageDiv.textContent = `${sender === 'user' ? 'User' : 'AI CALL'}: ${message}`;
+            chatBox.appendChild(messageDiv);
+            chatBox.scrollTop = chatBox.scrollHeight;
+        }
+
+        function startRecognition() {
+            const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+            recognition.lang = 'ko-KR';
+            recognition.start();
+
+            recognition.onresult = function(event) {
+                const userInput = event.results[0][0].transcript;
+                appendMessage('user', userInput);
+
+                fetch('/get_response', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({'user_input': userInput})
+                })
+                .then(response => response.json())
+                .then(data => {
+                    appendMessage('bot', data.bot_response);
+                });
+            };
+        }
+    </script>
+</body>
+</html>
